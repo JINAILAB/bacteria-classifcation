@@ -56,8 +56,8 @@ def get_args_parser(add_help=True):
 
     parser.add_argument("--model", default="effnetv2_s", type=str, help="model name, resnet18, regnet_16gf, effnetv2_s, swinv2_m")
     parser.add_argument("--device", default="cuda", type=str, help="device (Use cuda or cpu Default: cuda)")
-    parser.add_argument("--gpu", default=[0, 1],  type=list)
-    parser.add_argument("--distributed", default=True, type=bool )
+    parser.add_argument("--gpu", default=0,  type=list)
+    parser.add_argument("--distributed", default=False, type=bool )
     parser.add_argument(
         "-b", "--batch-size", default=8, type=int,
         help="images per gpu, the total batch size is $NGPU x batch_size"
@@ -208,7 +208,7 @@ def get_all_embeddings(dataset, model):
     return tester.get_all_embeddings(dataset, model)
 
 
-def evaluate(model, loss_func, classifier_loss, valid_loader, device, epoch, args, num_classes, train_dataset, test_dataset, accuracy_calculator):
+def evaluate(model, loss_func, classifier_loss, valid_loader, device, epoch, args, num_classes, test_dataset, accuracy_calculator):
     acc_metric = torchmetrics.Accuracy(task="multiclass", num_classes=num_classes)
     f1_metric = torchmetrics.F1Score(task="multiclass", num_classes=num_classes, average='macro')
     confmat = torchmetrics.ConfusionMatrix(task="multiclass", num_classes=num_classes)
@@ -484,7 +484,7 @@ def main(args):
         # We disable the cudnn benchmarking because it can noticeably affect the accuracy
         torch.backends.cudnn.benchmark = False
         evaluate(model, loss_func, classifier_loss=classifier_loss, valid_loader= data_loader_test, device=device, args=args, num_classes = num_classes, 
-                 train_dataset = load_data(train_dir, val_dir, args)[0], test_dataset = load_data(train_dir, val_dir, args)[1], 
+                test_dataset = load_data(train_dir, val_dir, args)[1], 
                  accuracy_calculator=accuracy_calculator, epoch=epoch)
         return
 
@@ -500,7 +500,7 @@ def main(args):
         train_one_epoch(model, loss_func, classifier_loss, optimizer, data_loader, device, epoch, loss_optimizer, num_classes)
         lr_scheduler.step()
         eval_acc, eval_f1, c_matrix = evaluate(model, loss_func, classifier_loss=classifier_loss, valid_loader= data_loader_test, device=device, args=args, num_classes = num_classes, 
-                 train_dataset = load_data(train_dir, val_dir, args)[0], test_dataset = load_data(train_dir, val_dir, args)[1], 
+                 test_dataset = load_data(train_dir, val_dir, args)[1], 
                  accuracy_calculator=accuracy_calculator, epoch=epoch)
 
 
@@ -576,13 +576,13 @@ def main(args):
             top_p, top_class = prob.topk(1, dim = 1)
             top_class = top_class.detach().cpu().numpy().tolist()
             prob = prob.detach().cpu().numpy().tolist()
-            test_idx.extend(top_class)
+            test_idx.extend(top_class[0])
             test_prob.extend(prob)
         
         test_list = list(map(lambda x: x.split('/')[-1], test_list))
         pd_dict['test_list'] = test_list
         pd_dict['test_idx'] = test_idx
-        pd_dict['test_prob'] = test_prob
+        #pd_dict['test_prob'] = test_prob
         
         
         test_df = pd.DataFrame(pd_dict)
