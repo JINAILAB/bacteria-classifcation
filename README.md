@@ -19,8 +19,8 @@ It has been confirmed that metric learning outperformed general classification i
 - Clone this repo
 
 ```bash
-git clone https://github.com/OpenGVLab/InternImage.git
-cd InternImage
+git clone https://github.com/JINAILAB/bacteria-classifcation
+cd bacteria-classifcation
 ```
 
 - installation
